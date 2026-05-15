@@ -166,6 +166,18 @@
 </div>
 
 <script>
+const ADMIN_PASSWORD = '1234';
+const entered = sessionStorage.getItem('admin_auth');
+if (entered !== ADMIN_PASSWORD) {
+  const guess = prompt('Enter admin password:');
+  if (guess !== ADMIN_PASSWORD) {
+    document.body.innerHTML = '<p style="font-family:sans-serif;padding:2rem">Access denied.</p>';
+    throw new Error('Unauthorized');
+  }
+  sessionStorage.setItem('admin_auth', guess);
+}
+
+
   const API = 'https://scheduler-production-3f26.up.railway.app';
   let pendingBookingId = null;
 
@@ -346,5 +358,6 @@
   // ── Init ──────────────────────────────────────────────────────
   loadBookings();
 </script>
+
 </body>
 </html>
