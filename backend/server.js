@@ -3,7 +3,7 @@ const express = require('express');
 const cors    = require('cors');
 const stripe  = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { createClient } = require('@supabase/supabase-js');
-const nodemailer = require('nodemailer');
+// const nodemailer = require('nodemailer');
 const path = require('path');
 
 const app = express();
@@ -13,17 +13,41 @@ const supabase = createClient(
 );
 
 // ─── Email ───────────────────────────────────────────────────────
-const mailer = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: Number(process.env.EMAIL_PORT),
-  secure: Number(process.env.EMAIL_PORT) === 465,
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-});
+// const mailer = nodemailer.createTransport({
+//   host: process.env.EMAIL_HOST,
+//   port: Number(process.env.EMAIL_PORT),
+//   secure: Number(process.env.EMAIL_PORT) === 465,
+//   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+// });
 
+// async function sendMail(to, subject, html) {
+//   try {
+//     await mailer.sendMail({ from: process.env.EMAIL_FROM, to, subject, html });
+//     console.log(`Email sent to ${to}: ${subject}`);
+//   } catch (err) {
+//     console.error('Email send failed:', err.message);
+//   }
+// }
+
+// Remove the nodemailer require and mailer setup, replace with:
 async function sendMail(to, subject, html) {
   try {
-    await mailer.sendMail({ from: process.env.EMAIL_FROM, to, subject, html });
-    console.log(`Email sent to ${to}: ${subject}`);
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: process.env.EMAIL_FROM,
+        to,
+        subject,
+        html,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) console.error('Email failed:', data);
+    else console.log(`Email sent to ${to}`);
   } catch (err) {
     console.error('Email send failed:', err.message);
   }
