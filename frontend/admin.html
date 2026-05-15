@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Booking Management</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --brand:#1a3a2a; --brand-light:#2d6b4a; --bg:#f7f6f2; --surface:#fff; --border:#e2dfd6; --text:#1a1a18; --muted:#6b6b63; --radius:10px; }
+    body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); padding:2rem 1rem 4rem; max-width:1100px; margin:0 auto; }
+    h1 { font-family:'DM Serif Display',serif; font-size:26px; font-weight:400; margin-bottom:0.25rem; }
+    .subtitle { font-size:13px; color:var(--muted); margin-bottom:1.5rem; }
+
+    /* Tabs */
+    .tabs { display:flex; gap:4px; margin-bottom:1.5rem; border-bottom:1px solid var(--border); }
+    .tab { padding:8px 16px; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; border:none; background:none; font-family:inherit; border-bottom:2px solid transparent; margin-bottom:-1px; }
+    .tab.active { color:var(--brand); border-bottom-color:var(--brand); }
+
+    /* Panel */
+    .panel { display:none; }
+    .panel.active { display:block; }
+
+    /* Flash */
+    .flash { padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:12px; display:none; }
+    .flash.success { background:#d1fae5; color:#065f46; display:block; }
+    .flash.error   { background:#fee2e2; color:#991b1b; display:block; }
+
+    /* Filter row */
+    .filter-row { display:flex; gap:10px; margin-bottom:12px; align-items:center; flex-wrap:wrap; }
+    .filter-row select, .filter-row input { font-family:inherit; font-size:13px; padding:7px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); outline:none; }
+    .refresh-btn { padding:7px 14px; background:none; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; cursor:pointer; }
+    .refresh-btn:hover { background:var(--bg); }
+
+    /* Table */
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:0; overflow:hidden; margin-bottom:16px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); padding:10px 12px; background:var(--bg); }
+    td { padding:10px 12px; border-top:1px solid var(--border); vertical-align:top; }
+    .empty { text-align:center; padding:2rem; color:var(--muted); font-size:14px; }
+
+    /* Badges */
+    .badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:2px 8px; border-radius:20px; font-weight:500; white-space:nowrap; }
+    .badge-pending   { background:#fef3cd; color:#7a5200; }
+    .badge-confirmed { background:#dbeafe; color:#1e40af; }
+    .badge-paid      { background:#d1fae5; color:#065f46; }
+    .badge-cancelled { background:#fee2e2; color:#991b1b; }
+
+    /* Confirm modal overlay */
+    .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:100; }
+    .modal-bg.open { display:flex; }
+    .modal { background:var(--surface); border-radius:var(--radius); padding:1.5rem; width:100%; max-width:420px; }
+    .modal h2 { font-family:'DM Serif Display',serif; font-size:20px; font-weight:400; margin-bottom:6px; }
+    .modal p  { font-size:13px; color:var(--muted); margin-bottom:1rem; line-height:1.6; }
+    .modal-detail { font-size:13px; background:var(--bg); border-radius:8px; padding:10px 14px; margin-bottom:1rem; line-height:1.9; }
+    .modal-detail strong { color:var(--text); }
+    .time-select-wrap { margin-bottom:1rem; }
+    .time-select-wrap label { font-size:12px; color:var(--muted); font-weight:500; display:block; margin-bottom:5px; }
+    .time-select-wrap select { font-family:inherit; font-size:14px; padding:9px 11px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); width:100%; outline:none; }
+    .modal-actions { display:flex; gap:10px; }
+    .btn-primary { padding:11px 20px; background:var(--brand); color:#fff; border:none; border-radius:8px; font-family:inherit; font-size:14px; font-weight:500; cursor:pointer; flex:1; }
+    .btn-primary:hover { background:var(--brand-light); }
+    .btn-primary:disabled { opacity:0.45; cursor:not-allowed; }
+    .btn-cancel { padding:11px 20px; background:none; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; cursor:pointer; }
+
+    /* Services panel */
+    .services-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; margin-bottom:1.5rem; }
+    .svc-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1rem; }
+    .svc-card-name { font-weight:500; font-size:14px; margin-bottom:4px; }
+    .svc-card-dur  { font-size:12px; color:var(--muted); margin-bottom:10px; }
+    .svc-card-actions { display:flex; gap:6px; }
+    .btn-sm { padding:5px 12px; font-size:12px; border-radius:6px; cursor:pointer; font-family:inherit; border:1px solid var(--border); background:none; }
+    .btn-sm:hover { background:var(--bg); }
+    .btn-sm.danger { color:#991b1b; border-color:#f5b8b8; }
+    .btn-sm.danger:hover { background:#fee2e2; }
+    .btn-sm.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+    .btn-sm.primary:hover { background:var(--brand-light); }
+    .inactive-tag { font-size:10px; background:#fee2e2; color:#991b1b; border-radius:4px; padding:1px 6px; margin-left:6px; }
+
+    /* Add service form */
+    .add-svc-form { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; max-width:420px; }
+    .add-svc-form h3 { font-size:14px; font-weight:500; margin-bottom:1rem; }
+    .form-row { display:grid; grid-template-columns:1fr 140px; gap:10px; margin-bottom:10px; }
+    .form-group { display:flex; flex-direction:column; gap:5px; }
+    .form-group label { font-size:12px; color:var(--muted); font-weight:500; }
+    .form-group input, .form-group select { font-family:inherit; font-size:14px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); outline:none; }
+
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spinner { display:inline-block; width:12px; height:12px; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:5px; }
+  </style>
+</head>
+<body>
+
+<h1>Booking Admin</h1>
+<p class="subtitle">Manage appointments and services</p>
+
+<div class="flash" id="flash"></div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('bookings')">Bookings</button>
+  <button class="tab" onclick="showTab('services')">Services</button>
+</div>
+
+<!-- ── Bookings Panel ─────────────────────────────────────────── -->
+<div class="panel active" id="panel-bookings">
+  <div class="filter-row">
+    <select id="status-filter" onchange="loadBookings()">
+      <option value="">All statuses</option>
+      <option value="pending" selected>Pending</option>
+      <option value="confirmed">Confirmed</option>
+      <option value="paid">Paid</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+    <input type="date" id="date-filter" onchange="loadBookings()" />
+    <button class="refresh-btn" onclick="loadBookings()">↻ Refresh</button>
+  </div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Block</th>
+          <th>Service</th>
+          <th>Confirmed time</th>
+          <th>Customer</th>
+          <th>Contact</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="bookings-table">
+        <tr><td colspan="8" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Services Panel ─────────────────────────────────────────── -->
+<div class="panel" id="panel-services">
+  <div class="services-grid" id="services-grid">Loading…</div>
+  <div class="add-svc-form">
+    <h3>Add a new service</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Service name</label><input type="text" id="new-svc-name" placeholder="e.g. Blade Replacement" /></div>
+      <div class="form-group"><label>Duration (min)</label><input type="number" id="new-svc-dur" placeholder="30" min="5" step="5" /></div>
+    </div>
+    <button class="btn-sm primary" onclick="addService()">Add service</button>
+  </div>
+</div>
+
+<!-- ── Confirm Modal ──────────────────────────────────────────── -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <h2>Confirm appointment</h2>
+    <p>Pick the exact start time for this customer. They'll receive an email with their confirmed time and a payment link.</p>
+    <div class="modal-detail" id="modal-detail"></div>
+    <div class="time-select-wrap">
+      <label>Assign start time</label>
+      <select id="time-select"><option>Loading…</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" id="modal-confirm-btn" onclick="doConfirm()">Confirm &amp; Send email</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:3001';
+  let pendingBookingId = null;
+
+  // ── Flash ─────────────────────────────────────────────────────
+  function flash(msg, type) {
+    const el = document.getElementById('flash');
+    el.textContent = msg; el.className = 'flash ' + type;
+    setTimeout(() => el.className = 'flash', 4000);
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────
+  function showTab(tab) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['bookings','services'][i]===tab));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-'+tab).classList.add('active');
+    if (tab === 'services') loadServices();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────
+  function fmtDate(s) { return new Date(s+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+  function slotLabel(id) { return id === 'am' ? '9 AM–12 PM' : '1–4 PM'; }
+  function fmtTime(t) {
+    if (!t) return '—';
+    const [h,m] = t.split(':').map(Number);
+    const ap = h>=12?'PM':'AM', h12=h%12||12;
+    return `${h12}:${String(m).padStart(2,'0')} ${ap}`;
+  }
+
+  // ── Bookings ──────────────────────────────────────────────────
+  async function loadBookings() {
+    const status = document.getElementById('status-filter').value;
+    const date   = document.getElementById('date-filter').value;
+    let url = `${API}/admin/bookings?`;
+    if (status) url += `status=${status}&`;
+    if (date)   url += `date=${date}&`;
+
+    const tbody = document.getElementById('bookings-table');
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">Loading…</td></tr>';
+
+    try {
+      const res  = await fetch(url);
+      const data = await res.json();
+      if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No bookings found.</td></tr>'; return; }
+      tbody.innerHTML = data.map(b => `
+        <tr>
+          <td>${fmtDate(b.date)}</td>
+          <td>${slotLabel(b.slot_id)}</td>
+          <td>${b.services?.name || '—'}<br/><span style="font-size:11px;color:var(--muted)">${b.services?.duration_min||''}min</span></td>
+          <td>${b.confirmed_start ? `<strong>${fmtTime(b.confirmed_start)}</strong>` : '<span style="color:var(--muted)">Not set</span>'}</td>
+          <td>${b.first_name} ${b.last_name}</td>
+          <td><a href="mailto:${b.email}" style="font-size:12px">${b.email}</a><br/><span style="font-size:11px;color:var(--muted)">${b.phone||''}</span></td>
+          <td><span class="badge badge-${b.status}">${b.status}</span></td>
+          <td>
+            ${b.status === 'pending'
+              ? `<button class="btn-sm primary" onclick="openModal('${b.id}','${b.date}','${b.slot_id}','${b.service_id}','${b.first_name} ${b.last_name}','${b.services?.name||''}','${b.services?.duration_min||60}')">Set time &amp; confirm</button>`
+              : '—'}
+          </td>
+        </tr>
+      `).join('');
+    } catch {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty">Failed to load. Is the backend running?</td></tr>';
+    }
+  }
+
+  // ── Confirm modal ─────────────────────────────────────────────
+  async function openModal(id, date, slot_id, service_id, customer, svcName, dur) {
+    pendingBookingId = id;
+    document.getElementById('modal-detail').innerHTML =
+      `<strong>Customer:</strong> ${customer}<br/>
+       <strong>Service:</strong> ${svcName} (${dur} min)<br/>
+       <strong>Date:</strong> ${fmtDate(date)}<br/>
+       <strong>Block:</strong> ${slotLabel(slot_id)}`;
+
+    const sel = document.getElementById('time-select');
+    sel.innerHTML = '<option>Loading available times…</option>';
+    document.getElementById('modal-bg').classList.add('open');
+
+    try {
+      const res   = await fetch(`${API}/available-times?date=${date}&slot_id=${slot_id}&service_id=${service_id}`);
+      const times = await res.json();
+      if (!times.length) {
+        sel.innerHTML = '<option>No times available in this block</option>';
+      } else {
+        sel.innerHTML = times.map(t => `<option value="${t}">${fmtTime(t)}</option>`).join('');
+      }
+    } catch {
+      sel.innerHTML = '<option>Error loading times</option>';
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('modal-bg').classList.remove('open');
+    pendingBookingId = null;
+  }
+
+  async function doConfirm() {
+    const confirmed_start = document.getElementById('time-select').value;
+    if (!confirmed_start || confirmed_start.startsWith('No') || confirmed_start.startsWith('Error') || confirmed_start.startsWith('Loading')) {
+      alert('Please select a valid time.'); return;
+    }
+    const btn = document.getElementById('modal-confirm-btn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Sending…';
+
+    try {
+      const res  = await fetch(`${API}/bookings/${pendingBookingId}/confirm`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ confirmed_start }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        flash(`✅ Confirmed at ${fmtTime(confirmed_start)} — payment link sent to customer.`, 'success');
+        closeModal();
+        loadBookings();
+      } else {
+        flash(data.error || 'Failed to confirm.', 'error');
+      }
+    } catch {
+      flash('Network error.', 'error');
+    }
+    btn.disabled = false; btn.textContent = 'Confirm & Send email';
+  }
+
+  // Click outside modal to close
+  document.getElementById('modal-bg').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-bg')) closeModal();
+  });
+
+  // ── Services ──────────────────────────────────────────────────
+  async function loadServices() {
+    const res  = await fetch(`${API}/services/all`);
+    const svcs = await res.json();
+    const grid = document.getElementById('services-grid');
+    if (!svcs.length) { grid.innerHTML = '<div style="color:var(--muted)">No services yet.</div>'; return; }
+    grid.innerHTML = svcs.map(s => `
+      <div class="svc-card">
+        <div class="svc-card-name">
+          ${s.name}
+          ${!s.active ? '<span class="inactive-tag">inactive</span>' : ''}
+        </div>
+        <div class="svc-card-dur">${s.duration_min} min per appointment</div>
+        <div class="svc-card-actions">
+          <button class="btn-sm ${s.active?'danger':'primary'}" onclick="toggleService('${s.id}',${s.active})">
+            ${s.active ? 'Deactivate' : 'Activate'}
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function addService() {
+    const name = document.getElementById('new-svc-name').value.trim();
+    const dur  = document.getElementById('new-svc-dur').value;
+    if (!name || !dur) { flash('Please enter a name and duration.', 'error'); return; }
+    const res  = await fetch(`${API}/services`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, duration_min: Number(dur) }),
+    });
+    if (res.ok) {
+      document.getElementById('new-svc-name').value = '';
+      document.getElementById('new-svc-dur').value  = '';
+      flash(`✅ "${name}" added.`, 'success');
+      loadServices();
+    } else {
+      const d = await res.json();
+      flash(d.error || 'Failed to add service.', 'error');
+    }
+  }
+
+  async function toggleService(id, currentlyActive) {
+    const res = await fetch(`${API}/services/${id}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ active: !currentlyActive }),
+    });
+    if (res.ok) { flash(`Service ${currentlyActive?'deactivated':'activated'}.`, 'success'); loadServices(); }
+    else flash('Failed to update service.', 'error');
+  }
+
+  // ── Init ──────────────────────────────────────────────────────
+  loadBookings();
+</script>
+</body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book an Appointment</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand: #1a3a2a; --brand-light: #2d6b4a;
+      --bg: #f7f6f2; --surface: #fff; --border: #e2dfd6;
+      --text: #1a1a18; --muted: #6b6b63; --radius: 10px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem 4rem; }
+    .logo { font-family: 'DM Serif Display', serif; font-size: 15px; letter-spacing: 0.04em; color: var(--brand); margin-bottom: 2rem; }
+    .container { width: 100%; max-width: 560px; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 28px; font-weight: 400; text-align: center; margin-bottom: 6px; }
+    .page-sub { font-size: 14px; color: var(--muted); text-align: center; margin-bottom: 2rem; }
+
+    /* Steps */
+    .steps { display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; }
+    .step { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+    .step-dot { width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; transition: all 0.2s; }
+    .step.active .step-dot { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .step.done .step-dot { background: var(--brand-light); border-color: var(--brand-light); color: #fff; }
+    .step-line { width: 36px; height: 1px; background: var(--border); margin: 0 2px; }
+
+    /* Card */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 12px; }
+    .card-title { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; }
+
+    /* Service picker */
+    .service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .service-card {
+      border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+      cursor: pointer; transition: all 0.15s; background: var(--surface);
+    }
+    .service-card:hover { border-color: var(--brand-light); background: #f0f7f3; }
+    .service-card.selected { border-color: var(--brand); background: #f0f7f3; }
+    .service-card .svc-name { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
+    .service-card .svc-dur { font-size: 12px; color: var(--muted); }
+    .service-card .svc-check { float: right; color: var(--brand); font-size: 16px; display: none; }
+    .service-card.selected .svc-check { display: inline; }
+
+    /* Calendar */
+    .week-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .week-nav button { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; color: var(--text); font-family: inherit; }
+    .week-nav button:hover { background: var(--bg); }
+    .week-label { font-size: 14px; font-weight: 500; }
+    .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 1rem; }
+    .day-col { text-align: center; }
+    .day-name { font-size: 10px; color: var(--muted); font-weight: 500; margin-bottom: 3px; }
+    .day-num  { font-size: 12px; font-weight: 500; margin-bottom: 5px; }
+    .slot-btn {
+      width: 100%; padding: 5px 2px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--surface); font-size: 9px; cursor: pointer; color: var(--muted);
+      font-family: inherit; margin-bottom: 3px; transition: all 0.15s; line-height: 1.4;
+    }
+    .slot-btn:hover:not(:disabled) { border-color: var(--brand-light); color: var(--brand-light); background: #f0f7f3; }
+    .slot-btn.selected { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .slot-btn:disabled { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
+    .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); align-items: center; flex-wrap: wrap; }
+    .legend-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 3px; vertical-align: middle; }
+
+    /* Selection summary */
+    .sel-summary { background: #f0f7f3; border: 1px solid #b8d8c4; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--brand); margin-bottom: 1rem; display: none; align-items: center; gap: 8px; }
+    .sel-summary.show { display: flex; }
+
+    /* Form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 12px; color: var(--muted); font-weight: 500; }
+    .form-group input, .form-group textarea {
+      font-family: inherit; font-size: 14px; padding: 9px 11px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface); color: var(--text); outline: none; transition: border-color 0.15s;
+    }
+    .form-group input:focus, .form-group textarea:focus { border-color: var(--brand-light); }
+    .form-group textarea { resize: vertical; min-height: 72px; }
+
+    /* Buttons */
+    .btn-primary { width: 100%; padding: 13px; background: var(--brand); color: #fff; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+    .btn-primary:hover { background: var(--brand-light); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-back { padding: 11px 20px; background: none; color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; }
+    .btn-back:hover { background: var(--bg); }
+    .btn-row { display: flex; gap: 10px; margin-bottom: 8px; }
+    .btn-row .btn-primary { flex: 1; }
+
+    /* Detail rows */
+    .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .detail-row:last-child { border-bottom: none; }
+    .dl { color: var(--muted); } .dv { font-weight: 500; }
+
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+    .badge-pending { background: #fef3cd; color: #7a5200; }
+
+    /* Notice / flow note */
+    .notice { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; line-height: 1.6; }
+    .flow-note { background: #fdf8ee; border-left: 3px solid #c8a96e; padding: 10px 14px; font-size: 13px; color: #7a5200; margin-bottom: 14px; border-radius: 0 6px 6px 0; line-height: 1.6; }
+
+    /* Center views */
+    .center-view { text-align: center; padding: 2rem 0.5rem; }
+    .icon-circle { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 1.25rem; }
+    .icon-circle.pending { background: #fef3cd; }
+    .view-title { font-family: 'DM Serif Display', serif; font-size: 24px; font-weight: 400; margin-bottom: 8px; }
+    .view-sub { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 360px; margin: 0 auto 1.5rem; }
+    .pill { display: inline-flex; align-items: center; gap: 5px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; font-size: 12px; padding: 4px 12px; color: var(--muted); margin: 3px; }
+
+    /* Error */
+    .error-msg { background: #fde8e8; border: 1px solid #f5b8b8; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #7a1c1c; margin-bottom: 12px; display: none; }
+    .error-msg.show { display: block; }
+
+    /* Views */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+
+    /* No service selected calendar state */
+    .calendar-locked { opacity: 0.4; pointer-events: none; }
+    .pick-service-hint { text-align: center; font-size: 13px; color: var(--muted); padding: 1rem 0 0.5rem; }
+  </style>
+</head>
+<body>
+
+<div class="logo">✦ Your Business Name</div>
+<div class="container">
+  <h1 class="page-title">Book an Appointment</h1>
+  <p class="page-sub">Pick a service and time block — we'll confirm the exact time within 24 hours</p>
+
+  <div class="steps">
+    <div class="step active" id="s1"><div class="step-dot">1</div></div>
+    <div class="step-line"></div>
+    <div class="step" id="s2"><div class="step-dot">2</div></div>
+    <div class="step-line"></div>
+    <div class="step" id="s3"><div class="step-dot">3</div></div>
+    <div class="step-line"></div>
+    <div class="step" id="s4"><div class="step-dot">4</div></div>
+  </div>
+
+  <!-- View 1: Service + Calendar -->
+  <div class="view active" id="view-1">
+    <div class="card">
+      <div class="card-title">Select a service</div>
+      <div class="service-grid" id="service-grid">
+        <div style="color:var(--muted);font-size:13px">Loading services…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Select a time block</div>
+      <p class="pick-service-hint" id="pick-hint">← Pick a service first</p>
+      <div id="calendar-wrap" class="calendar-locked">
+        <div class="week-nav">
+          <button onclick="changeWeek(-1)">←</button>
+          <span class="week-label" id="week-label"></span>
+          <button onclick="changeWeek(1)">→</button>
+        </div>
+        <div class="days-grid" id="days-grid"></div>
+        <div class="legend">
+          <span><span class="legend-swatch" style="background:var(--brand)"></span>Selected</span>
+          <span><span class="legend-swatch" style="background:#fff;border:1px solid var(--border)"></span>Available</span>
+          <span><span class="legend-swatch" style="background:var(--bg);opacity:0.4"></span>Fully booked</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sel-summary" id="sel-summary">
+      <span>📅</span><span id="sel-text"></span>
+    </div>
+    <div id="continue-wrap" style="display:none">
+      <button class="btn-primary" onclick="goTo(2)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- View 2: Contact info -->
+  <div class="view" id="view-2">
+    <div class="flow-note">ℹ️ No payment collected now. After you submit, we'll confirm your exact appointment time and send a payment link.</div>
+    <div class="error-msg" id="form-error"></div>
+    <div class="card">
+      <div class="card-title">Your details</div>
+      <div class="form-grid">
+        <div class="form-group"><label>First name *</label><input type="text" id="fname" placeholder="Jane" /></div>
+        <div class="form-group"><label>Last name *</label><input type="text" id="lname" placeholder="Smith" /></div>
+        <div class="form-group"><label>Email *</label><input type="email" id="email" placeholder="jane@email.com" /></div>
+        <div class="form-group"><label>Phone</label><input type="tel" id="phone" placeholder="(206) 555-0100" /></div>
+        <div class="form-group full"><label>Notes (optional)</label><textarea id="notes" placeholder="Anything we should know…"></textarea></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Booking summary</div>
+      <div class="detail-row"><span class="dl">Service</span><span class="dv" id="summary-service"></span></div>
+      <div class="detail-row"><span class="dl">Time block</span><span class="dv" id="summary-slot"></span></div>
+      <div class="detail-row"><span class="dl">Status after submit</span><span class="badge badge-pending">⏱ Pending confirmation</span></div>
+      <div class="detail-row"><span class="dl">Deposit (after confirmation)</span><span class="dv">$20.00</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goTo(1)">← Back</button>
+      <button class="btn-primary" id="submit-btn" onclick="submitBooking()">Request appointment</button>
+    </div>
+    <p class="notice">We'll email you to confirm your exact time before any payment is taken.</p>
+  </div>
+
+  <!-- View 3: Submitted -->
+  <div class="view" id="view-3">
+    <div class="card">
+      <div class="center-view">
+        <div class="icon-circle pending">📋</div>
+        <div class="view-title">Request received!</div>
+        <p class="view-sub" id="pending-sub"></p>
+        <div style="margin-bottom:1rem">
+          <span class="pill">✉️ Confirmation email sent</span>
+          <span class="pill">⏱ Response within 24 hrs</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">What happens next</div>
+      <div class="detail-row"><span class="dl">① We review your request</span><span class="dv" style="font-size:12px;color:var(--muted)">Check our schedule</span></div>
+      <div class="detail-row"><span class="dl">② We assign your exact time</span><span class="dv" style="font-size:12px;color:var(--muted)">Email within 24 hrs</span></div>
+      <div class="detail-row"><span class="dl">③ You pay $20 deposit</span><span class="dv" style="font-size:12px;color:var(--muted)">Secures your spot</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:3001';
+
+  let weekOffset   = 0;
+  let services     = [];
+  let selectedSvc  = null; // { id, name, duration_min }
+  let selectedSlot = null; // { date, slot_id }
+  let fullyBooked  = [];   // [{ date, slot_id }] for current service+week
+
+  // ── Helpers ──────────────────────────────────────────────────
+  function isoDate(d) { return d.toISOString().split('T')[0]; }
+  function fmtDate(s) {
+    return new Date(s + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  }
+  function slotFull(id) { return id === 'am' ? '9:00 AM – 12:00 PM' : '1:00 PM – 4:00 PM'; }
+  function getWeekDates(off) {
+    const now = new Date(), dow = now.getDay();
+    const mon = new Date(now);
+    mon.setDate(now.getDate() - dow + 1 + off * 7);
+    return Array.from({length:7}, (_,i) => { const d=new Date(mon); d.setDate(mon.getDate()+i); return d; });
+  }
+  function fmt(d) { return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+  function isFullyBooked(dateStr, slot_id) {
+    return fullyBooked.some(b => b.date === dateStr && b.slot_id === slot_id);
+  }
+  function showError(id, msg) { const e=document.getElementById(id); e.textContent=msg; e.classList.add('show'); }
+  function hideError(id) { document.getElementById(id).classList.remove('show'); }
+
+  // ── Load services ─────────────────────────────────────────────
+  async function loadServices() {
+    try {
+      const res  = await fetch(`${API}/services`);
+      services   = await res.json();
+    } catch { services = []; }
+
+    const grid = document.getElementById('service-grid');
+    if (!services.length) {
+      grid.innerHTML = '<div style="color:var(--muted);font-size:13px">No services available.</div>';
+      return;
+    }
+    grid.innerHTML = services.map(s => `
+      <div class="service-card" id="svc-${s.id}" onclick="selectService('${s.id}')">
+        <span class="svc-check">✓</span>
+        <div class="svc-name">${s.name}</div>
+        <div class="svc-dur">${s.duration_min} min appointment</div>
+      </div>
+    `).join('');
+  }
+
+  function selectService(id) {
+    selectedSvc  = services.find(s => s.id === id);
+    selectedSlot = null;
+    document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('svc-' + id).classList.add('selected');
+    document.getElementById('calendar-wrap').classList.remove('calendar-locked');
+    document.getElementById('pick-hint').style.display = 'none';
+    document.getElementById('sel-summary').classList.remove('show');
+    document.getElementById('continue-wrap').style.display = 'none';
+    loadAvailability();
+  }
+
+  // ── Availability ──────────────────────────────────────────────
+  async function loadAvailability() {
+    if (!selectedSvc) return;
+    const days  = getWeekDates(weekOffset);
+    const start = isoDate(days[0]);
+    const end   = isoDate(days[6]);
+    try {
+      const res  = await fetch(`${API}/availability?start=${start}&end=${end}&service_id=${selectedSvc.id}`);
+      fullyBooked = await res.json();
+    } catch { fullyBooked = []; }
+    renderCalendar();
+  }
+
+  // ── Calendar ──────────────────────────────────────────────────
+  function renderCalendar() {
+    const days  = getWeekDates(weekOffset);
+    const today = new Date(); today.setHours(0,0,0,0);
+    document.getElementById('week-label').textContent = `${fmt(days[0])} – ${fmt(days[6])}`;
+
+    const grid = document.getElementById('days-grid');
+    grid.innerHTML = '';
+    const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    days.forEach(d => {
+      const isPast   = d < today;
+      const dateStr  = isoDate(d);
+      const col      = document.createElement('div');
+      col.className  = 'day-col';
+      col.innerHTML  = `<div class="day-name">${DAY[d.getDay()]}</div><div class="day-num">${d.getDate()}</div>`;
+
+      ['am','pm'].forEach(slot_id => {
+        const booked     = isPast || isFullyBooked(dateStr, slot_id);
+        const isSel      = selectedSlot && selectedSlot.date === dateStr && selectedSlot.slot_id === slot_id;
+        const btn        = document.createElement('button');
+        btn.className    = 'slot-btn' + (isSel ? ' selected' : '');
+        btn.textContent  = slot_id === 'am' ? 'AM' : 'PM';
+        btn.title        = slotFull(slot_id);
+        btn.disabled     = booked;
+        btn.onclick      = () => pickSlot(dateStr, slot_id);
+        col.appendChild(btn);
+      });
+      grid.appendChild(col);
+    });
+  }
+
+  function pickSlot(dateStr, slot_id) {
+    selectedSlot = { date: dateStr, slot_id };
+    renderCalendar();
+    document.getElementById('sel-text').textContent =
+      `${fmtDate(dateStr)} · ${slotFull(slot_id)} · ${selectedSvc.name}`;
+    document.getElementById('sel-summary').classList.add('show');
+    document.getElementById('continue-wrap').style.display = 'block';
+  }
+
+  async function changeWeek(dir) {
+    weekOffset += dir;
+    if (weekOffset < 0) { weekOffset = 0; return; }
+    await loadAvailability();
+  }
+
+  // ── Steps ─────────────────────────────────────────────────────
+  function goTo(n) {
+    [1,2,3,4].forEach(i => {
+      document.getElementById('view-'+i)?.classList.remove('active');
+      const s = document.getElementById('s'+i);
+      if (s) { s.classList.remove('active','done'); if (i<n) s.classList.add('done'); else if (i===n) s.classList.add('active'); }
+    });
+    document.getElementById('view-'+n)?.classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+    if (n === 2 && selectedSlot && selectedSvc) {
+      document.getElementById('summary-service').textContent = `${selectedSvc.name} (${selectedSvc.duration_min} min)`;
+      document.getElementById('summary-slot').textContent    = `${fmtDate(selectedSlot.date)} · ${slotFull(selectedSlot.slot_id)}`;
+    }
+  }
+
+  // ── Submit ────────────────────────────────────────────────────
+  async function submitBooking() {
+    hideError('form-error');
+    const fn = document.getElementById('fname').value.trim();
+    const ln = document.getElementById('lname').value.trim();
+    const em = document.getElementById('email').value.trim();
+    const ph = document.getElementById('phone').value.trim();
+    const nt = document.getElementById('notes').value.trim();
+    if (!fn || !ln || !em) { showError('form-error','Please fill in your name and email.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { showError('form-error','Please enter a valid email.'); return; }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Submitting…';
+
+    try {
+      const res  = await fetch(`${API}/bookings`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ date:selectedSlot.date, slot_id:selectedSlot.slot_id, service_id:selectedSvc.id, first_name:fn, last_name:ln, email:em, phone:ph, notes:nt }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showError('form-error', data.error||'Something went wrong.'); btn.disabled=false; btn.textContent='Request appointment'; return; }
+      document.getElementById('pending-sub').textContent =
+        `Thanks, ${fn}! We've received your ${selectedSvc.name} request for ${fmtDate(selectedSlot.date)} (${slotFull(selectedSlot.slot_id)}). We'll email ${em} within 24 hours with your confirmed time.`;
+      goTo(3);
+    } catch {
+      showError('form-error','Network error — please try again.');
+      btn.disabled=false; btn.textContent='Request appointment';
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────
+  loadServices();
+  renderCalendar();
+</script>
+</body>
+</html>
